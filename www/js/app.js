@@ -1,23 +1,34 @@
 /* ===========================================================
    Bingo Stop — offline local game logic
+   Classic 75-ball style board: columns B-I-N-G-O, no FREE space.
    All data (results history) is stored in localStorage only.
 =========================================================== */
 (() => {
   "use strict";
 
   const STORAGE_HISTORY = "bingoStop_history_v1";
-  const STORAGE_LASTPLAYER = "bingoStop_lastPlayer_v1";
+  const STORAGE_LASTPLAYER = "bingoStop_lastPlayer_v2";
+
+  const LETTERS = ["B", "I", "N", "G", "O"];
+  const COL_RANGES = [
+    [1, 15],
+    [16, 30],
+    [31, 45],
+    [46, 60],
+    [61, 75],
+  ];
 
   /* ---------------- State ---------------- */
   const state = {
     name: "",
     gender: "blue",
-    range: 25,
-    board: [],          // array of {num, marked, free}
-    mode: "manual",      // manual | auto
+    board: [],            // 25 cells, row-major: idx = row*5+col, {num, marked, col}
+    mode: "manual",        // manual | auto
     drawnAuto: [],
     usedManual: new Set(),
     startedAt: null,
+    completedLines: new Set(),  // keys like "row0","col3","diag0"
+    completedCols: new Set(),   // 0..4 -> letter fully marked
   };
 
   /* ---------------- Helpers ---------------- */
@@ -52,6 +63,13 @@
     return arr;
   }
 
+  function letterForNum(n) {
+    for (let c = 0; c < 5; c++) {
+      if (n >= COL_RANGES[c][0] && n <= COL_RANGES[c][1]) return LETTERS[c];
+    }
+    return "?";
+  }
+
   /* ---------------- Setup screen ---------------- */
   function initGenderPicker() {
     const opts = $$(".gender-opt");
@@ -63,7 +81,6 @@
         document.body.setAttribute("data-theme", state.gender);
       });
     });
-    // default select blue
     opts[0].classList.add("active");
     document.body.setAttribute("data-theme", "blue");
   }
@@ -78,7 +95,6 @@
           document.body.setAttribute("data-theme", last.gender);
           $$(".gender-opt").forEach((b) => b.classList.toggle("active", b.dataset.gender === last.gender));
         }
-        if (last.range) $("#numRange").value = String(last.range);
       }
     } catch (e) { /* ignore */ }
   }
@@ -91,31 +107,55 @@
       return;
     }
     state.name = name;
-    state.range = parseInt($("#numRange").value, 10);
-    localStorage.setItem(STORAGE_LASTPLAYER, JSON.stringify({ name, gender: state.gender, range: state.range }));
+    localStorage.setItem(STORAGE_LASTPLAYER, JSON.stringify({ name, gender: state.gender }));
 
+    renderBingoHeader();
     generateBoard();
     setupManualPad();
     updateHud();
     switchScreen("#screen-game");
   }
 
+  /* ---------------- BINGO header ---------------- */
+  function renderBingoHeader() {
+    const header = $("#bingoHeader");
+    header.innerHTML = "";
+    LETTERS.forEach((letter, col) => {
+      const span = document.createElement("div");
+      span.className = "letter-box";
+      span.dataset.col = col;
+      span.textContent = letter;
+      header.appendChild(span);
+    });
+  }
+
+  function updateHeaderCut() {
+    LETTERS.forEach((letter, col) => {
+      const box = document.querySelector(`.letter-box[data-col="${col}"]`);
+      if (!box) return;
+      box.classList.toggle("cut", state.completedCols.has(col));
+    });
+  }
+
   /* ---------------- Board generation ---------------- */
   function generateBoard() {
-    const pool = shuffle(Array.from({ length: state.range }, (_, i) => i + 1));
-    const picks = pool.slice(0, 24); // 24 + 1 free = 25
     state.board = [];
-    let p = 0;
-    for (let i = 0; i < 25; i++) {
-      if (i === 12) {
-        state.board.push({ num: null, marked: true, free: true });
-      } else {
-        state.board.push({ num: picks[p++], marked: false, free: false });
+    // build 5 shuffled columns from their own number range (5 numbers each)
+    const columns = COL_RANGES.map(([lo, hi]) => {
+      const pool = shuffle(Array.from({ length: hi - lo + 1 }, (_, i) => lo + i));
+      return pool.slice(0, 5);
+    });
+    for (let row = 0; row < 5; row++) {
+      for (let col = 0; col < 5; col++) {
+        state.board.push({ num: columns[col][row], marked: false, col });
       }
     }
     state.drawnAuto = [];
     state.usedManual = new Set();
+    state.completedLines = new Set();
+    state.completedCols = new Set();
     renderBoard();
+    updateHeaderCut();
   }
 
   function renderBoard() {
@@ -123,8 +163,8 @@
     board.innerHTML = "";
     state.board.forEach((cell, idx) => {
       const div = document.createElement("div");
-      div.className = "cell" + (cell.free ? " free" : "") + (cell.marked ? " marked" : "");
-      div.textContent = cell.free ? "FREE" : cell.num;
+      div.className = "cell" + (cell.marked ? " marked" : "");
+      div.textContent = cell.num;
       div.dataset.idx = idx;
       div.addEventListener("click", () => toggleCell(idx));
       board.appendChild(div);
@@ -133,7 +173,6 @@
 
   function toggleCell(idx) {
     const cell = state.board[idx];
-    if (cell.free) return;
     cell.marked = !cell.marked;
     const el = document.querySelector(`.cell[data-idx="${idx}"]`);
     el.classList.toggle("marked", cell.marked);
@@ -141,7 +180,6 @@
       el.classList.add("called-flash");
       setTimeout(() => el.classList.remove("called-flash"), 500);
     }
-    // reflect in manual pad if manual mode
     if (state.mode === "manual") {
       const padBtn = document.querySelector(`.pad-num[data-num="${cell.num}"]`);
       if (padBtn) {
@@ -149,38 +187,96 @@
         else { state.usedManual.delete(cell.num); padBtn.classList.remove("used"); }
       }
     }
+    checkLines();
+  }
+
+  /* ---------------- Line / column / diagonal detection ---------------- */
+  function checkLines() {
+    const b = state.board;
+    const lines = [];
+
+    for (let r = 0; r < 5; r++) {
+      lines.push({ key: `row${r}`, idxs: [0, 1, 2, 3, 4].map((c) => r * 5 + c) });
+    }
+    for (let c = 0; c < 5; c++) {
+      lines.push({ key: `col${c}`, idxs: [0, 1, 2, 3, 4].map((r) => r * 5 + c), col: c });
+    }
+    lines.push({ key: "diag0", idxs: [0, 6, 12, 18, 24] });
+    lines.push({ key: "diag1", idxs: [4, 8, 12, 16, 20] });
+
+    const newlyCompleted = [];
+    lines.forEach((line) => {
+      const complete = line.idxs.every((i) => b[i].marked);
+      if (complete && !state.completedLines.has(line.key)) {
+        state.completedLines.add(line.key);
+        newlyCompleted.push(line);
+      } else if (!complete && state.completedLines.has(line.key)) {
+        state.completedLines.delete(line.key);
+      }
+      line.idxs.forEach((i) => {
+        const el = document.querySelector(`.cell[data-idx="${i}"]`);
+        if (!el) return;
+        el.classList.toggle("line-win", complete);
+      });
+    });
+
+    // recompute which columns are fully complete (for the BINGO letter cut)
+    state.completedCols = new Set();
+    for (let c = 0; c < 5; c++) {
+      const idxs = [0, 1, 2, 3, 4].map((r) => r * 5 + c);
+      if (idxs.every((i) => b[i].marked)) state.completedCols.add(c);
+    }
+    updateHeaderCut();
+
+    if (newlyCompleted.length) {
+      showToast(newlyCompleted.length > 1 ? "🟩 Multiple lines completed!" : "🟩 Line completed!");
+    }
   }
 
   /* ---------------- Manual pad ---------------- */
   function setupManualPad() {
     const pad = $("#manualPad");
     pad.innerHTML = "";
-    for (let n = 1; n <= state.range; n++) {
-      const btn = document.createElement("button");
-      btn.className = "pad-num";
-      btn.textContent = n;
-      btn.dataset.num = n;
-      btn.addEventListener("click", () => {
-        const isUsed = state.usedManual.has(n);
-        if (isUsed) { state.usedManual.delete(n); btn.classList.remove("used"); }
-        else { state.usedManual.add(n); btn.classList.add("used"); }
-        // mark matching cell(s) on board
-        state.board.forEach((cell, idx) => {
-          if (!cell.free && cell.num === n) {
-            cell.marked = !isUsed;
-            const el = document.querySelector(`.cell[data-idx="${idx}"]`);
-            el.classList.toggle("marked", cell.marked);
-          }
+    LETTERS.forEach((letter, col) => {
+      const group = document.createElement("div");
+      group.className = "pad-group";
+      const label = document.createElement("span");
+      label.className = "pad-group-label";
+      label.textContent = letter;
+      group.appendChild(label);
+
+      const [lo, hi] = COL_RANGES[col];
+      const nums = document.createElement("div");
+      nums.className = "pad-group-nums";
+      for (let n = lo; n <= hi; n++) {
+        const btn = document.createElement("button");
+        btn.className = "pad-num";
+        btn.textContent = n;
+        btn.dataset.num = n;
+        btn.addEventListener("click", () => {
+          const isUsed = state.usedManual.has(n);
+          if (isUsed) { state.usedManual.delete(n); btn.classList.remove("used"); }
+          else { state.usedManual.add(n); btn.classList.add("used"); }
+          state.board.forEach((cell, idx) => {
+            if (cell.num === n) {
+              cell.marked = !isUsed;
+              const el = document.querySelector(`.cell[data-idx="${idx}"]`);
+              el.classList.toggle("marked", cell.marked);
+            }
+          });
+          checkLines();
         });
-      });
-      pad.appendChild(btn);
-    }
+        nums.appendChild(btn);
+      }
+      group.appendChild(nums);
+      pad.appendChild(group);
+    });
   }
 
   /* ---------------- Auto shuffle / draw ---------------- */
   function drawNumber() {
     const remaining = [];
-    for (let n = 1; n <= state.range; n++) {
+    for (let n = 1; n <= 75; n++) {
       if (!state.drawnAuto.includes(n)) remaining.push(n);
     }
     if (remaining.length === 0) {
@@ -189,17 +285,17 @@
     }
     const num = remaining[Math.floor(Math.random() * remaining.length)];
     state.drawnAuto.push(num);
-    $("#autoNumber").textContent = num;
+    $("#autoNumber").textContent = `${letterForNum(num)}-${num}`;
 
-    // auto-mark matching board cell
     state.board.forEach((cell, idx) => {
-      if (!cell.free && cell.num === num) {
+      if (cell.num === num) {
         cell.marked = true;
         const el = document.querySelector(`.cell[data-idx="${idx}"]`);
         el.classList.add("marked", "called-flash");
         setTimeout(() => el.classList.remove("called-flash"), 500);
       }
     });
+    checkLines();
   }
 
   function resetAutoDraw() {
@@ -244,14 +340,14 @@
 
   function recordResult(result) {
     const list = getHistory();
-    const markedCount = state.board.filter((c) => c.marked && !c.free).length;
+    const markedCount = state.board.filter((c) => c.marked).length;
     list.unshift({
       name: state.name,
       gender: state.gender,
-      range: state.range,
       mode: state.mode,
       result,
       markedCount,
+      linesCompleted: state.completedLines.size,
       date: new Date().toISOString(),
     });
     saveHistory(list);
@@ -270,7 +366,7 @@
       row.innerHTML = `
         <div class="history-info">
           <span class="history-name">${escapeHtml(item.name)}</span>
-          <span class="history-time">${fmtDateTime(d)} · 1–${item.range} · ${item.mode === "auto" ? "Auto" : "Manual"}</span>
+          <span class="history-time">${fmtDateTime(d)} · ${item.mode === "auto" ? "Auto" : "Manual"} · ${item.linesCompleted || 0} line(s)</span>
         </div>
         <span class="history-badge ${item.result === "win" ? "badge-win" : "badge-lose"}">${item.result === "win" ? "Win" : "Lose"}</span>
       `;
@@ -296,12 +392,15 @@
     $("#btnMenu").addEventListener("click", toggleMenu);
     $("#btnNewCard").addEventListener("click", () => { generateBoard(); showToast("New card generated"); closeMenu(); });
     $("#btnResetMarks").addEventListener("click", () => {
-      state.board.forEach((c) => { if (!c.free) c.marked = false; });
+      state.board.forEach((c) => { c.marked = false; });
       state.usedManual.clear();
       state.drawnAuto = [];
+      state.completedLines = new Set();
+      state.completedCols = new Set();
       $("#autoNumber").textContent = "--";
       renderBoard();
       setupManualPad();
+      updateHeaderCut();
       showToast("Marks cleared");
       closeMenu();
     });

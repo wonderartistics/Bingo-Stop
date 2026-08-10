@@ -21,10 +21,10 @@
 <section id="screen-setup" class="screen active">
   <div class="card glass">
     <div class="brand">
-      <span class="brand-mark">25</span>
+      <span class="brand-mark">B</span>
       <div>
         <h1>Bingo Stop</h1>
-        <p class="sub">Offline · Local · 5×5</p>
+        <p class="sub">Offline · Local · Classic 5×5</p>
       </div>
     </div>
 
@@ -51,15 +51,6 @@
       </div>
     </div>
 
-    <label class="field">
-      <span class="field-label">Number range</span>
-      <select id="numRange">
-        <option value="25">1 – 25 (classic)</option>
-        <option value="50">1 – 50</option>
-        <option value="75">1 – 75 (US Bingo)</option>
-        <option value="99">1 – 99</option>
-      </select>
-    </label>
 
     <button id="btnStart" class="btn btn-primary btn-block">Start Game</button>
     <button id="btnHistory" class="btn btn-ghost btn-block">View Results History</button>
@@ -111,6 +102,7 @@
   </div>
 
   <div class="card glass board-card">
+    <div id="bingoHeader" class="bingo-header"></div>
     <div id="bingoBoard" class="bingo-board"></div>
   </div>
 
