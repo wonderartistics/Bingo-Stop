@@ -1,0 +1,10 @@
+{
+  "name": "Bingo Stop",
+  "short_name": "Bingo Stop",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b0d16",
+  "theme_color": "#4F8CFF",
+  "orientation": "portrait-primary",
+  "icons": []
+}

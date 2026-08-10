@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#7C8CF8">
+<title>Bingo Stop</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+<div class="bg-orbs" aria-hidden="true">
+  <span class="orb orb-a"></span>
+  <span class="orb orb-b"></span>
+  <span class="orb orb-c"></span>
+</div>
+
+<!-- ============ SCREEN 1 : SETUP ============ -->
+<section id="screen-setup" class="screen active">
+  <div class="card glass">
+    <div class="brand">
+      <span class="brand-mark">25</span>
+      <div>
+        <h1>Bingo Stop</h1>
+        <p class="sub">Offline · Local · 5×5</p>
+      </div>
+    </div>
+
+    <label class="field">
+      <span class="field-label">Player name</span>
+      <input id="playerName" type="text" placeholder="Enter your name" maxlength="24" autocomplete="off">
+    </label>
+
+    <div class="field">
+      <span class="field-label">Choose your theme</span>
+      <div class="gender-picker" id="genderPicker">
+        <button type="button" class="gender-opt" data-gender="blue">
+          <span class="gender-swatch swatch-blue"></span>
+          <span>Blue</span>
+        </button>
+        <button type="button" class="gender-opt" data-gender="pink">
+          <span class="gender-swatch swatch-pink"></span>
+          <span>Pink</span>
+        </button>
+        <button type="button" class="gender-opt" data-gender="violet">
+          <span class="gender-swatch swatch-violet"></span>
+          <span>Violet</span>
+        </button>
+      </div>
+    </div>
+
+    <label class="field">
+      <span class="field-label">Number range</span>
+      <select id="numRange">
+        <option value="25">1 – 25 (classic)</option>
+        <option value="50">1 – 50</option>
+        <option value="75">1 – 75 (US Bingo)</option>
+        <option value="99">1 – 99</option>
+      </select>
+    </label>
+
+    <button id="btnStart" class="btn btn-primary btn-block">Start Game</button>
+    <button id="btnHistory" class="btn btn-ghost btn-block">View Results History</button>
+
+    <p class="footnote">No internet needed. Everything is saved on this device only.</p>
+  </div>
+</section>
+
+<!-- ============ SCREEN 2 : GAME ============ -->
+<section id="screen-game" class="screen">
+  <header class="topbar glass">
+    <div class="player-chip">
+      <span id="avatarInitial" class="avatar"></span>
+      <div class="player-meta">
+        <strong id="hudName">Player</strong>
+        <span id="hudTime" class="muted"></span>
+      </div>
+    </div>
+    <button id="btnMenu" class="icon-btn" aria-label="Menu">⋮</button>
+  </header>
+
+  <div class="menu-sheet" id="menuSheet">
+    <button class="sheet-item" id="btnNewCard">🔄 New Card (same player)</button>
+    <button class="sheet-item" id="btnResetMarks">🧹 Clear Marks</button>
+    <button class="sheet-item" id="btnGoHistory">📜 Results History</button>
+    <button class="sheet-item" id="btnGoSetup">🏠 Back to Setup</button>
+  </div>
+
+  <div class="mode-row card glass">
+    <div class="segmented" id="modeSwitch">
+      <button class="seg-btn active" data-mode="manual">Manual</button>
+      <button class="seg-btn" data-mode="auto">Auto Shuffle</button>
+    </div>
+    <button id="btnShuffle" class="btn btn-primary btn-small">🎲 Shuffle Card</button>
+  </div>
+
+  <div id="manualPanel" class="card glass manual-panel">
+    <span class="field-label">Tap a number to mark / call it</span>
+    <div id="manualPad" class="manual-pad"></div>
+  </div>
+
+  <div id="autoPanel" class="card glass auto-panel hidden">
+    <div class="auto-display">
+      <span class="muted">Current Call</span>
+      <div id="autoNumber" class="auto-number">--</div>
+    </div>
+    <button id="btnDraw" class="btn btn-primary btn-block">Draw Next Number</button>
+    <button id="btnAutoReset" class="btn btn-ghost btn-block">Reset Drawn Numbers</button>
+  </div>
+
+  <div class="card glass board-card">
+    <div id="bingoBoard" class="bingo-board"></div>
+  </div>
+
+  <div class="result-row card glass">
+    <button id="btnWin" class="btn btn-win">🏆 Mark as WIN</button>
+    <button id="btnLose" class="btn btn-lose">✖ Mark as LOSE</button>
+  </div>
+</section>
+
+<!-- ============ SCREEN 3 : HISTORY ============ -->
+<section id="screen-history" class="screen">
+  <header class="topbar glass">
+    <button id="btnBackFromHistory" class="icon-btn" aria-label="Back">‹</button>
+    <strong>Results History</strong>
+    <button id="btnClearHistory" class="icon-btn" aria-label="Clear all">🗑</button>
+  </header>
+
+  <div id="historyList" class="history-list"></div>
+  <p id="historyEmpty" class="footnote center hidden">No results yet. Play a round and mark Win or Lose.</p>
+</section>
+
+<div id="toast" class="toast"></div>
+
+<script src="js/app.js"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("service-worker.js").catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "appId": "com.bingostop.app",
+  "appName": "Bingo Stop",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "backgroundColor": "#0b0d16",
+  "android": {
+    "backgroundColor": "#0b0d16"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "bingo-stop-app",
+  "version": "1.0.0",
+  "description": "Bingo Stop — offline 5x5 Bingo game, packaged as a native Android app with Capacitor",
+  "private": true,
+  "scripts": {
+    "add:android": "cap add android",
+    "sync": "cap sync android",
+    "copy": "cap copy android",
+    "open:android": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}
