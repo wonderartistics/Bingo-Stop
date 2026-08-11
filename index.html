@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d16">
+<title>Bingo Stop</title>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+<!-- ============ SPLASH SCREEN ============ -->
+<div id="splashScreen" class="splash-screen" role="img" aria-label="Bingo Stop loading">
+  <div class="splash-orbs" aria-hidden="true">
+    <span class="splash-orb splash-orb-a"></span>
+    <span class="splash-orb splash-orb-b"></span>
+  </div>
+  <div class="splash-content">
+    <div class="splash-mark">
+      <span class="splash-mark-dot d1"></span>
+      <span class="splash-mark-dot d2"></span>
+      <span class="splash-mark-dot d3"></span>
+      <span class="splash-mark-dot d4"></span>
+      <span class="splash-mark-dot d5 win"></span>
+      <span class="splash-mark-dot d6"></span>
+      <span class="splash-mark-dot d7"></span>
+      <span class="splash-mark-dot d8"></span>
+      <span class="splash-mark-dot d9"></span>
+      <span class="splash-mark-line"></span>
+    </div>
+    <h1 class="splash-title">BINGO STOP</h1>
+    <p class="splash-tagline">Offline · Local · 25 / 50 / 75 Boards</p>
+    <div class="splash-loader"><span></span><span></span><span></span></div>
+  </div>
+  <div class="splash-credit">
+    <span class="splash-credit-label">Created by</span>
+    <span class="splash-credit-name">TAIMOOR HASSAN</span>
+  </div>
+  <div class="splash-version" id="splashVersion">v2026.BINGO.100.1</div>
+</div>
+
+<div class="bg-orbs" aria-hidden="true">
+  <span class="orb orb-a"></span>
+  <span class="orb orb-b"></span>
+  <span class="orb orb-c"></span>
+</div>
+
+<!-- ============ SCREEN 1 : SETUP ============ -->
+<section id="screen-setup" class="screen active">
+  <div class="card glass">
+    <div class="brand">
+      <span class="brand-mark">B</span>
+      <div>
+        <h1>Bingo Stop</h1>
+        <p class="sub">Offline · Local · 25 / 50 / 75 Boards</p>
+      </div>
+    </div>
+
+    <label class="field">
+      <span class="field-label">Player name</span>
+      <input id="playerName" type="text" placeholder="Enter your name" maxlength="24" autocomplete="off">
+    </label>
+
+    <div class="field">
+      <span class="field-label">Choose your theme</span>
+      <div class="gender-picker" id="genderPicker">
+        <button type="button" class="gender-opt" data-gender="blue">
+          <span class="gender-swatch swatch-blue"></span>
+          <span>Blue</span>
+        </button>
+        <button type="button" class="gender-opt" data-gender="pink">
+          <span class="gender-swatch swatch-pink"></span>
+          <span>Pink</span>
+        </button>
+        <button type="button" class="gender-opt" data-gender="violet">
+          <span class="gender-swatch swatch-violet"></span>
+          <span>Violet</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="field-label">Board size</span>
+      <div class="board-picker" id="boardPicker">
+        <button type="button" class="board-opt" data-pool="25">
+          <strong>25</strong>
+          <span>Quick · small groups</span>
+        </button>
+        <button type="button" class="board-opt" data-pool="50">
+          <strong>50</strong>
+          <span>Medium groups</span>
+        </button>
+        <button type="button" class="board-opt" data-pool="75">
+          <strong>75</strong>
+          <span>Classic · large groups</span>
+        </button>
+      </div>
+    </div>
+
+    <button id="btnStart" class="btn btn-primary btn-block">Start Game</button>
+    <button id="btnHistory" class="btn btn-ghost btn-block">View Results History</button>
+
+    <p class="footnote">No internet needed. Everything is saved on this device only.</p>
+    <p class="app-version" id="setupVersion">v2026.BINGO.100.1</p>
+  </div>
+</section>
+
+<!-- ============ SCREEN 2 : GAME ============ -->
+<section id="screen-game" class="screen">
+  <header class="topbar glass">
+    <div class="player-chip">
+      <span id="avatarInitial" class="avatar"></span>
+      <div class="player-meta">
+        <strong id="hudName">Player</strong>
+        <span id="hudTime" class="muted"></span>
+      </div>
+    </div>
+    <button id="btnMenu" class="icon-btn" aria-label="Menu">⋮</button>
+  </header>
+
+  <div class="menu-sheet" id="menuSheet">
+    <button class="sheet-item" id="btnNewCard">🔄 New Card (same player)</button>
+    <button class="sheet-item" id="btnResetMarks">🧹 Clear Marks</button>
+    <button class="sheet-item" id="btnGoHistory">📜 Results History</button>
+    <button class="sheet-item" id="btnGoSetup">🏠 Back to Setup</button>
+  </div>
+
+  <div class="mode-row card glass">
+    <div class="segmented" id="modeSwitch">
+      <button class="seg-btn active" data-mode="manual">Manual</button>
+      <button class="seg-btn" data-mode="auto">Auto Shuffle</button>
+    </div>
+    <button id="btnShuffle" class="btn btn-primary btn-small">🎲 Shuffle Card</button>
+  </div>
+
+  <div id="manualPanel" class="card glass manual-panel">
+    <span class="field-label">Tap a number to mark / call it</span>
+    <div id="manualPad" class="manual-pad"></div>
+  </div>
+
+  <div id="autoPanel" class="card glass auto-panel hidden">
+    <div class="auto-display">
+      <span class="muted">Current Call</span>
+      <div id="autoNumber" class="auto-number">--</div>
+    </div>
+    <button id="btnDraw" class="btn btn-primary btn-block">Draw Next Number</button>
+    <button id="btnAutoReset" class="btn btn-ghost btn-block">Reset Drawn Numbers</button>
+  </div>
+
+  <div class="card glass board-card">
+    <div id="bingoHeader" class="bingo-header"></div>
+    <div id="bingoBoard" class="bingo-board"></div>
+  </div>
+
+  <div class="result-row card glass">
+    <button id="btnWin" class="btn btn-win">🏆 Mark as WIN</button>
+    <button id="btnLose" class="btn btn-lose">✖ Mark as LOSE</button>
+  </div>
+</section>
+
+<!-- ============ AUTO-WIN OVERLAY ============ -->
+<div id="autoWinOverlay" class="autowin-overlay">
+  <div class="autowin-card glass">
+    <div class="autowin-badge">🎉</div>
+    <h2>BINGO! Auto-Win</h2>
+    <p>5 lines completed — this round was automatically recorded as a <strong>WIN</strong>.</p>
+    <div class="autowin-actions">
+      <button id="btnAutoWinKeep" class="btn btn-primary btn-block">Keep as WIN</button>
+      <button id="btnAutoWinOverride" class="btn btn-ghost btn-block">Actually, mark as LOSS</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SCREEN 3 : HISTORY ============ -->
+<section id="screen-history" class="screen">
+  <header class="topbar glass">
+    <button id="btnBackFromHistory" class="icon-btn" aria-label="Back">‹</button>
+    <strong>Results History</strong>
+    <button id="btnClearHistory" class="icon-btn" aria-label="Clear all">🗑</button>
+  </header>
+
+  <div id="historyList" class="history-list"></div>
+  <p id="historyEmpty" class="footnote center hidden">No results yet. Play a round and mark Win or Lose.</p>
+</section>
+
+<div id="toast" class="toast"></div>
+
+<script src="js/app.js"></script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("service-worker.js").catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>

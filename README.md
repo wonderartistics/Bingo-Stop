@@ -1,21 +1,38 @@
 # 🎯 Bingo Stop — Native Android App (built by GitHub)
 
+**Version 2026.BINGO.100.1**
+
 This repo turns the Bingo Stop web game into a **real installable Android app (.apk)**, without you needing Android Studio or a Mac. A GitHub Actions workflow builds the APK automatically every time you push to `main`, and drops it in **Releases** and in the **Actions** run as a downloadable file.
 
-Under the hood it uses [Capacitor](https://capacitorjs.com/) to wrap the existing offline web app (`www/`) into a native Android shell. The game logic, UI, and offline local-storage behavior are all unchanged — this just packages it as a proper app with an icon, a home-screen launcher, and no browser chrome.
+Under the hood it uses [Capacitor](https://capacitorjs.com/) to wrap the existing offline web app (`www/`) into a native Android shell. The game logic, UI, and offline local-storage behavior are all unchanged in spirit — this just packages it as a proper app with a custom icon, a branded splash screen, and no browser chrome.
+
+## What's new in this version
+
+- **Selectable board size**: choose 25 (quick/small groups), 50 (medium groups), or 75 (classic/large groups) numbers on the Setup screen. Number ranges for each B‑I‑N‑G‑O column scale automatically to the chosen size.
+- **Reworked "green line" behavior**: instead of only lighting up a BINGO letter when its own column is fully marked, a letter now lights up (green, cut) for **every** line completed anywhere on the board — any row, column, or diagonal — counted left to right, up to 5.
+- **Auto‑win at 5 lines**: as soon as 5 lines are completed, the round is automatically recorded as a **WIN** and a celebration banner appears. You can still tap **"Actually, mark as LOSS"** on that banner to override the auto‑recorded result.
+- **App icon**: a custom, modern icon (bingo card + completed diagonal line motif) used for the Android launcher and the web/PWA icon.
+- **Splash screen**: a ~3.5 second branded splash on launch, prominently crediting **Created by TAIMOOR HASSAN**.
+- **App version**: `2026.BINGO.100.1`, shown on the splash screen and the Setup screen footer, and set as the native Android `versionName`.
 
 ## What's in this repo
 
 ```
 bingo-stop-app/
-├── www/                        # The actual game (HTML/CSS/JS) — same app as before
+├── www/                        # The actual game (HTML/CSS/JS)
 │   ├── index.html
 │   ├── css/style.css
-│   └── js/app.js
-├── capacitor.config.json       # Tells Capacitor to package www/ as the app
-├── package.json                # Capacitor dependencies
+│   ├── js/app.js
+│   └── icons/                  # Web/PWA icons (favicon, 192/512, maskable, apple-touch)
+├── resources/                  # Source art for the native app icon & splash screen
+│   ├── icon.png                 # 1024×1024 legacy/flattened icon
+│   ├── icon-foreground.png      # Android adaptive icon foreground layer
+│   ├── icon-background.png      # Android adaptive icon background layer
+│   └── splash.png / splash-dark.png   # 2732×2732 native splash art
+├── capacitor.config.json       # Packaging + SplashScreen plugin config (3.5s duration)
+├── package.json                # Capacitor + @capacitor/assets dependencies, app version
 ├── .github/workflows/
-│   └── build-android.yml       # Builds the APK automatically on GitHub's servers
+│   └── build-android.yml       # Builds the APK, generates icons/splash, sets version
 └── android/                    # Generated automatically by the workflow (not committed)
 ```
 
@@ -32,7 +49,7 @@ bingo-stop-app/
    git push -u origin main
    ```
 
-2. **Go to the "Actions" tab** on your GitHub repo. A workflow called **Build Android APK** will start running automatically (it also runs on every future push, or you can click "Run workflow" any time).
+2. **Go to the "Actions" tab** on your GitHub repo. A workflow called **Build Android APK** will start running automatically (it also runs on every future push, or you can click "Run workflow" any time). It will add the Android platform, generate the app icon and splash screen from `resources/`, and stamp the app with version `2026.BINGO.100.1`.
 
 3. **Wait for the green checkmark** (first run takes a few minutes — it's setting up Java, Node, and Android build tools on GitHub's machine).
 
@@ -43,13 +60,15 @@ bingo-stop-app/
 5. **Install it on an Android phone:**
    - Transfer the `.apk` file to the phone (email it to yourself, use a USB cable, Google Drive, etc.)
    - Tap the file to install. Android will warn about "unknown sources" the first time — that's normal for an app not published on the Play Store; allow it for this install.
-   - Open **Bingo Stop** from the app drawer. It runs fully offline from then on, exactly like the web version, with its own launcher icon.
+   - Open **Bingo Stop** from the app drawer. You'll see the branded splash screen for a few seconds, then the app runs fully offline from then on, with its own launcher icon.
 
 You never need to open Android Studio — GitHub's servers do the actual Android build for you.
 
 ## Updating the app later
 
-Any time you edit files inside `www/` (the game itself) and push to `main`, the workflow re-runs and builds a fresh APK automatically. Just repeat step 4 to grab the new one.
+Any time you edit files inside `www/` (the game itself) or the icon/splash art in `resources/`, and push to `main`, the workflow re-runs and builds a fresh APK automatically. Just repeat step 4 to grab the new one.
+
+If you want to bump the version number for a future release, update the `APP_VERSION_NAME` / `APP_VERSION_CODE` values at the top of `.github/workflows/build-android.yml`, and the `APP_VERSION` constant near the top of `www/js/app.js`.
 
 ## Running it as a website too
 
@@ -63,6 +82,7 @@ Capacitor also supports iOS, but Apple requires building on macOS with Xcode —
 ```bash
 npm install
 npx cap add ios
+npx capacitor-assets generate --ios
 npx cap copy ios
 npx cap open ios
 ```
@@ -71,4 +91,6 @@ Then build and run from Xcode. (App Store distribution additionally requires a p
 ## Notes
 
 - The debug APK from this workflow is fine for installing on your own devices or sharing directly with players. If you eventually want to publish to the Google Play Store, that requires generating a **signed release build** with your own keystore — a good next step once you're happy with the app, and something I can help set up when you're ready.
-- All game data (player name, theme, results history) still lives only in the app's local storage on each device — nothing is synced or uploaded, matching the offline pass-and-play design.
+- All game data (player name, theme, board size, results history) still lives only in the app's local storage on each device — nothing is synced or uploaded, matching the offline pass-and-play design.
+- The "Mark as LOSS" override on an auto-win only changes that one round's saved result; it doesn't affect earlier rounds already in history.
+
