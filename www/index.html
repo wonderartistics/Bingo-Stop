@@ -3,13 +3,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#7C8CF8">
+<meta name="theme-color" content="#0b0d16">
 <title>Bingo Stop</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎯</text></svg>">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="css/style.css">
 <link rel="manifest" href="manifest.json">
 </head>
 <body>
+
+<!-- ============ SPLASH SCREEN ============ -->
+<div id="splashScreen" class="splash-screen" role="img" aria-label="Bingo Stop loading">
+  <div class="splash-orbs" aria-hidden="true">
+    <span class="splash-orb splash-orb-a"></span>
+    <span class="splash-orb splash-orb-b"></span>
+  </div>
+  <div class="splash-content">
+    <div class="splash-mark">
+      <span class="splash-mark-dot d1"></span>
+      <span class="splash-mark-dot d2"></span>
+      <span class="splash-mark-dot d3"></span>
+      <span class="splash-mark-dot d4"></span>
+      <span class="splash-mark-dot d5 win"></span>
+      <span class="splash-mark-dot d6"></span>
+      <span class="splash-mark-dot d7"></span>
+      <span class="splash-mark-dot d8"></span>
+      <span class="splash-mark-dot d9"></span>
+      <span class="splash-mark-line"></span>
+    </div>
+    <h1 class="splash-title">BINGO STOP</h1>
+    <p class="splash-tagline">Offline · Local · 25 / 50 / 75 Boards</p>
+    <div class="splash-loader"><span></span><span></span><span></span></div>
+  </div>
+  <div class="splash-credit">
+    <span class="splash-credit-label">Created by</span>
+    <span class="splash-credit-name">TAIMOOR HASSAN</span>
+  </div>
+  <div class="splash-version" id="splashVersion">v2026.BINGO.100.1</div>
+</div>
 
 <div class="bg-orbs" aria-hidden="true">
   <span class="orb orb-a"></span>
@@ -24,7 +56,7 @@
       <span class="brand-mark">B</span>
       <div>
         <h1>Bingo Stop</h1>
-        <p class="sub">Offline · Local · Classic 5×5</p>
+        <p class="sub">Offline · Local · 25 / 50 / 75 Boards</p>
       </div>
     </div>
 
@@ -51,11 +83,29 @@
       </div>
     </div>
 
+    <div class="field">
+      <span class="field-label">Board size</span>
+      <div class="board-picker" id="boardPicker">
+        <button type="button" class="board-opt" data-pool="25">
+          <strong>25</strong>
+          <span>Quick · small groups</span>
+        </button>
+        <button type="button" class="board-opt" data-pool="50">
+          <strong>50</strong>
+          <span>Medium groups</span>
+        </button>
+        <button type="button" class="board-opt" data-pool="75">
+          <strong>75</strong>
+          <span>Classic · large groups</span>
+        </button>
+      </div>
+    </div>
 
     <button id="btnStart" class="btn btn-primary btn-block">Start Game</button>
     <button id="btnHistory" class="btn btn-ghost btn-block">View Results History</button>
 
     <p class="footnote">No internet needed. Everything is saved on this device only.</p>
+    <p class="app-version" id="setupVersion">v2026.BINGO.100.1</p>
   </div>
 </section>
 
@@ -111,6 +161,19 @@
     <button id="btnLose" class="btn btn-lose">✖ Mark as LOSE</button>
   </div>
 </section>
+
+<!-- ============ AUTO-WIN OVERLAY ============ -->
+<div id="autoWinOverlay" class="autowin-overlay">
+  <div class="autowin-card glass">
+    <div class="autowin-badge">🎉</div>
+    <h2>BINGO! Auto-Win</h2>
+    <p>5 lines completed — this round was automatically recorded as a <strong>WIN</strong>.</p>
+    <div class="autowin-actions">
+      <button id="btnAutoWinKeep" class="btn btn-primary btn-block">Keep as WIN</button>
+      <button id="btnAutoWinOverride" class="btn btn-ghost btn-block">Actually, mark as LOSS</button>
+    </div>
+  </div>
+</div>
 
 <!-- ============ SCREEN 3 : HISTORY ============ -->
 <section id="screen-history" class="screen">

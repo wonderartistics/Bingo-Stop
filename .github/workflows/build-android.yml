@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+env:
+  APP_VERSION_NAME: "2026.BINGO.100.1"
+  APP_VERSION_CODE: 1
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -35,8 +39,18 @@ jobs:
             npx cap add android
           fi
 
+      - name: Generate app icon & splash screen from /resources
+        run: npx capacitor-assets generate --android
+
       - name: Sync web assets into Android project
         run: npx cap copy android
+
+      - name: Set Android version name & code
+        working-directory: android
+        run: |
+          sed -i "s/versionCode [0-9]\+/versionCode ${APP_VERSION_CODE}/" app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"${APP_VERSION_NAME}\"/" app/build.gradle
+          grep -E "versionCode|versionName" app/build.gradle
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
@@ -56,7 +70,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: Bingo Stop build ${{ github.run_number }}
+          name: Bingo Stop ${{ env.APP_VERSION_NAME }} (build ${{ github.run_number }})
           files: android/app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

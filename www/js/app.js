@@ -1,34 +1,43 @@
 /* ===========================================================
    Bingo Stop — offline local game logic
-   Classic 75-ball style board: columns B-I-N-G-O, no FREE space.
+   Selectable board sizes: 25 / 50 / 75 numbers, columns B-I-N-G-O.
+   The BINGO letters light up (green line) cumulatively for every
+   completed line (row / column / diagonal), regardless of which
+   line it was. 5 completed lines triggers an automatic WIN, which
+   can still be overridden and marked as a LOSS.
    All data (results history) is stored in localStorage only.
 =========================================================== */
 (() => {
   "use strict";
 
+  const APP_VERSION = "2026.BINGO.100.1";
+
   const STORAGE_HISTORY = "bingoStop_history_v1";
-  const STORAGE_LASTPLAYER = "bingoStop_lastPlayer_v2";
+  const STORAGE_LASTPLAYER = "bingoStop_lastPlayer_v3";
 
   const LETTERS = ["B", "I", "N", "G", "O"];
-  const COL_RANGES = [
-    [1, 15],
-    [16, 30],
-    [31, 45],
-    [46, 60],
-    [61, 75],
-  ];
+  const POOL_SIZES = [25, 50, 75];
+  const AUTO_WIN_LINES = 5;
+
+  function colRangesForPool(pool) {
+    const per = pool / 5;
+    return LETTERS.map((_, i) => [i * per + 1, i * per + per]);
+  }
 
   /* ---------------- State ---------------- */
   const state = {
     name: "",
     gender: "blue",
-    board: [],            // 25 cells, row-major: idx = row*5+col, {num, marked, col}
-    mode: "manual",        // manual | auto
+    poolSize: 75,          // 25 | 50 | 75
+    colRanges: colRangesForPool(75),
+    board: [],              // 25 cells, row-major: idx = row*5+col, {num, marked, col}
+    mode: "manual",         // manual | auto
     drawnAuto: [],
     usedManual: new Set(),
     startedAt: null,
-    completedLines: new Set(),  // keys like "row0","col3","diag0"
-    completedCols: new Set(),   // 0..4 -> letter fully marked
+    completedLines: new Set(),   // keys like "row0","col3","diag0"
+    autoWinFired: false,
+    autoWinRecordId: null,
   };
 
   /* ---------------- Helpers ---------------- */
@@ -65,7 +74,7 @@
 
   function letterForNum(n) {
     for (let c = 0; c < 5; c++) {
-      if (n >= COL_RANGES[c][0] && n <= COL_RANGES[c][1]) return LETTERS[c];
+      if (n >= state.colRanges[c][0] && n <= state.colRanges[c][1]) return LETTERS[c];
     }
     return "?";
   }
@@ -85,6 +94,20 @@
     document.body.setAttribute("data-theme", "blue");
   }
 
+  function initBoardPicker() {
+    const opts = $$(".board-opt");
+    opts.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        opts.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.poolSize = parseInt(btn.dataset.pool, 10);
+        state.colRanges = colRangesForPool(state.poolSize);
+      });
+    });
+    const match = opts.find((b) => parseInt(b.dataset.pool, 10) === state.poolSize);
+    (match || opts[opts.length - 1]).classList.add("active");
+  }
+
   function loadLastPlayer() {
     try {
       const last = JSON.parse(localStorage.getItem(STORAGE_LASTPLAYER) || "null");
@@ -94,6 +117,11 @@
           state.gender = last.gender;
           document.body.setAttribute("data-theme", last.gender);
           $$(".gender-opt").forEach((b) => b.classList.toggle("active", b.dataset.gender === last.gender));
+        }
+        if (last.poolSize && POOL_SIZES.includes(last.poolSize)) {
+          state.poolSize = last.poolSize;
+          state.colRanges = colRangesForPool(last.poolSize);
+          $$(".board-opt").forEach((b) => b.classList.toggle("active", parseInt(b.dataset.pool, 10) === last.poolSize));
         }
       }
     } catch (e) { /* ignore */ }
@@ -107,7 +135,7 @@
       return;
     }
     state.name = name;
-    localStorage.setItem(STORAGE_LASTPLAYER, JSON.stringify({ name, gender: state.gender }));
+    localStorage.setItem(STORAGE_LASTPLAYER, JSON.stringify({ name, gender: state.gender, poolSize: state.poolSize }));
 
     renderBingoHeader();
     generateBoard();
@@ -129,11 +157,14 @@
     });
   }
 
+  // The BINGO letters are cut left-to-right for every completed line,
+  // regardless of which row / column / diagonal actually completed it.
   function updateHeaderCut() {
+    const cutCount = Math.min(state.completedLines.size, LETTERS.length);
     LETTERS.forEach((letter, col) => {
       const box = document.querySelector(`.letter-box[data-col="${col}"]`);
       if (!box) return;
-      box.classList.toggle("cut", state.completedCols.has(col));
+      box.classList.toggle("cut", col < cutCount);
     });
   }
 
@@ -141,7 +172,7 @@
   function generateBoard() {
     state.board = [];
     // build 5 shuffled columns from their own number range (5 numbers each)
-    const columns = COL_RANGES.map(([lo, hi]) => {
+    const columns = state.colRanges.map(([lo, hi]) => {
       const pool = shuffle(Array.from({ length: hi - lo + 1 }, (_, i) => lo + i));
       return pool.slice(0, 5);
     });
@@ -153,7 +184,10 @@
     state.drawnAuto = [];
     state.usedManual = new Set();
     state.completedLines = new Set();
-    state.completedCols = new Set();
+    state.autoWinFired = false;
+    state.autoWinRecordId = null;
+    hideAutoWinOverlay();
+    setResultButtonsEnabled(true);
     renderBoard();
     updateHeaderCut();
   }
@@ -220,17 +254,53 @@
       });
     });
 
-    // recompute which columns are fully complete (for the BINGO letter cut)
-    state.completedCols = new Set();
-    for (let c = 0; c < 5; c++) {
-      const idxs = [0, 1, 2, 3, 4].map((r) => r * 5 + c);
-      if (idxs.every((i) => b[i].marked)) state.completedCols.add(c);
-    }
+    // Every completed line lights up one more BINGO letter (green line),
+    // left to right, independent of which specific line it was.
     updateHeaderCut();
 
     if (newlyCompleted.length) {
       showToast(newlyCompleted.length > 1 ? "🟩 Multiple lines completed!" : "🟩 Line completed!");
     }
+
+    if (state.completedLines.size >= AUTO_WIN_LINES && !state.autoWinFired) {
+      triggerAutoWin();
+    }
+  }
+
+  /* ---------------- Auto-win (5 lines completed) ---------------- */
+  function triggerAutoWin() {
+    state.autoWinFired = true;
+    const entry = recordResult("win", { auto: true });
+    state.autoWinRecordId = entry ? entry.id : null;
+    setResultButtonsEnabled(false);
+    showAutoWinOverlay();
+  }
+
+  function showAutoWinOverlay() {
+    $("#autoWinOverlay").classList.add("show");
+  }
+  function hideAutoWinOverlay() {
+    $("#autoWinOverlay").classList.remove("show");
+  }
+
+  function setResultButtonsEnabled(enabled) {
+    $("#btnWin").disabled = !enabled;
+    $("#btnLose").disabled = !enabled;
+    $("#btnWin").style.opacity = enabled ? "1" : "0.5";
+    $("#btnLose").style.opacity = enabled ? "1" : "0.5";
+  }
+
+  function overrideAutoWinToLoss() {
+    if (!state.autoWinRecordId) { hideAutoWinOverlay(); return; }
+    const list = getHistory();
+    const idx = list.findIndex((item) => item.id === state.autoWinRecordId);
+    if (idx !== -1) {
+      list[idx].result = "lose";
+      list[idx].overridden = true;
+      saveHistory(list);
+      showToast(`Result changed to LOSE for ${state.name}`);
+    }
+    hideAutoWinOverlay();
   }
 
   /* ---------------- Manual pad ---------------- */
@@ -245,7 +315,7 @@
       label.textContent = letter;
       group.appendChild(label);
 
-      const [lo, hi] = COL_RANGES[col];
+      const [lo, hi] = state.colRanges[col];
       const nums = document.createElement("div");
       nums.className = "pad-group-nums";
       for (let n = lo; n <= hi; n++) {
@@ -276,7 +346,7 @@
   /* ---------------- Auto shuffle / draw ---------------- */
   function drawNumber() {
     const remaining = [];
-    for (let n = 1; n <= 75; n++) {
+    for (let n = 1; n <= state.poolSize; n++) {
       if (!state.drawnAuto.includes(n)) remaining.push(n);
     }
     if (remaining.length === 0) {
@@ -338,20 +408,28 @@
     localStorage.setItem(STORAGE_HISTORY, JSON.stringify(list));
   }
 
-  function recordResult(result) {
+  function recordResult(result, opts) {
+    opts = opts || {};
     const list = getHistory();
     const markedCount = state.board.filter((c) => c.marked).length;
-    list.unshift({
+    const entry = {
+      id: `r_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
       name: state.name,
       gender: state.gender,
+      poolSize: state.poolSize,
       mode: state.mode,
       result,
       markedCount,
       linesCompleted: state.completedLines.size,
+      auto: !!opts.auto,
       date: new Date().toISOString(),
-    });
+    };
+    list.unshift(entry);
     saveHistory(list);
-    showToast(result === "win" ? `🏆 Recorded WIN for ${state.name}` : `Recorded loss for ${state.name}`);
+    if (!opts.auto) {
+      showToast(result === "win" ? `🏆 Recorded WIN for ${state.name}` : `Recorded loss for ${state.name}`);
+    }
+    return entry;
   }
 
   function renderHistory() {
@@ -363,10 +441,12 @@
       const row = document.createElement("div");
       row.className = "history-item";
       const d = new Date(item.date);
+      const pool = item.poolSize || 75;
+      const tag = item.overridden ? " · overridden" : (item.auto ? " · auto-win" : "");
       row.innerHTML = `
         <div class="history-info">
           <span class="history-name">${escapeHtml(item.name)}</span>
-          <span class="history-time">${fmtDateTime(d)} · ${item.mode === "auto" ? "Auto" : "Manual"} · ${item.linesCompleted || 0} line(s)</span>
+          <span class="history-time">${fmtDateTime(d)} · ${pool}-No · ${item.mode === "auto" ? "Auto" : "Manual"} · ${item.linesCompleted || 0} line(s)${tag}</span>
         </div>
         <span class="history-badge ${item.result === "win" ? "badge-win" : "badge-lose"}">${item.result === "win" ? "Win" : "Lose"}</span>
       `;
@@ -380,9 +460,28 @@
     return div.innerHTML;
   }
 
+  /* ---------------- Splash screen ---------------- */
+  function initSplashScreen() {
+    const splash = $("#splashScreen");
+    if (!splash) return;
+    const MIN_SPLASH_MS = 3500; // ~3.5s branded splash with credit
+    setTimeout(() => {
+      splash.classList.add("hide");
+      setTimeout(() => splash.remove(), 700);
+    }, MIN_SPLASH_MS);
+  }
+
   /* ---------------- Event wiring ---------------- */
   function init() {
+    initSplashScreen();
+    const versionText = `v${APP_VERSION}`;
+    const splashV = $("#splashVersion");
+    const setupV = $("#setupVersion");
+    if (splashV) splashV.textContent = versionText;
+    if (setupV) setupV.textContent = versionText;
+
     initGenderPicker();
+    initBoardPicker();
     loadLastPlayer();
     initModeSwitch();
 
@@ -396,7 +495,10 @@
       state.usedManual.clear();
       state.drawnAuto = [];
       state.completedLines = new Set();
-      state.completedCols = new Set();
+      state.autoWinFired = false;
+      state.autoWinRecordId = null;
+      hideAutoWinOverlay();
+      setResultButtonsEnabled(true);
       $("#autoNumber").textContent = "--";
       renderBoard();
       setupManualPad();
@@ -411,8 +513,22 @@
     $("#btnDraw").addEventListener("click", drawNumber);
     $("#btnAutoReset").addEventListener("click", resetAutoDraw);
 
-    $("#btnWin").addEventListener("click", () => recordResult("win"));
-    $("#btnLose").addEventListener("click", () => recordResult("lose"));
+    $("#btnWin").addEventListener("click", () => {
+      if (state.autoWinFired) return;
+      recordResult("win");
+      setResultButtonsEnabled(false);
+    });
+    $("#btnLose").addEventListener("click", () => {
+      if (state.autoWinFired) return;
+      recordResult("lose");
+      setResultButtonsEnabled(false);
+    });
+
+    $("#btnAutoWinKeep").addEventListener("click", () => {
+      hideAutoWinOverlay();
+      showToast(`🏆 WIN kept for ${state.name}`);
+    });
+    $("#btnAutoWinOverride").addEventListener("click", overrideAutoWinToLoss);
 
     $("#btnBackFromHistory").addEventListener("click", () => switchScreen("#screen-setup"));
     $("#btnClearHistory").addEventListener("click", () => {
