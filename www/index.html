@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0b0d16">
+<meta name="theme-color" content="#0B0E1A">
 <title>Bingo Stop</title>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
@@ -40,7 +40,7 @@
     <span class="splash-credit-label">Created by</span>
     <span class="splash-credit-name">TAIMOOR HASSAN</span>
   </div>
-  <div class="splash-version" id="splashVersion">v2026.BINGO.100.1</div>
+  <div class="splash-version" id="splashVersion">v2026.BINGO.101.1</div>
 </div>
 
 <div class="bg-orbs" aria-hidden="true">
@@ -105,7 +105,7 @@
     <button id="btnHistory" class="btn btn-ghost btn-block">View Results History</button>
 
     <p class="footnote">No internet needed. Everything is saved on this device only.</p>
-    <p class="app-version" id="setupVersion">v2026.BINGO.100.1</p>
+    <p class="app-version" id="setupVersion">v2026.BINGO.101.1</p>
   </div>
 </section>
 
@@ -131,11 +131,18 @@
 
   <div class="mode-row card glass">
     <div class="segmented" id="modeSwitch">
-      <button class="seg-btn active" data-mode="manual">Manual</button>
-      <button class="seg-btn" data-mode="auto">Auto Shuffle</button>
+      <button class="seg-btn active" data-mode="manual">Mark Manually</button>
+      <button class="seg-btn" data-mode="auto">Auto Call</button>
     </div>
-    <button id="btnShuffle" class="btn btn-primary btn-small">🎲 Shuffle Card</button>
   </div>
+
+  <button id="btnShuffle" class="card glass shuffle-card" type="button">
+    <span class="shuffle-icon" id="shuffleIcon">🔀</span>
+    <span class="shuffle-text">
+      <strong>Manual Shuffle</strong>
+      <span>Tap to reshuffle your numbers into a brand new card</span>
+    </span>
+  </button>
 
   <div id="manualPanel" class="card glass manual-panel">
     <span class="field-label">Tap a number to mark / call it</span>

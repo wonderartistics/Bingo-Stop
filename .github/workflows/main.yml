@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 env:
-  APP_VERSION_NAME: "2026.BINGO.100.1"
-  APP_VERSION_CODE: 1
+  APP_VERSION_NAME: "2026.BINGO.101.1"
+  APP_VERSION_CODE: 2
 
 jobs:
   build:

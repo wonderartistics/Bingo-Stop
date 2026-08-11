@@ -1,7 +1,7 @@
 {
   "name": "bingo-stop-app",
-  "version": "2.0.0",
-  "appVersion": "2026.BINGO.100.1",
+  "version": "3.0.0",
+  "appVersion": "2026.BINGO.101.1",
   "description": "Bingo Stop — offline Bingo game (25/50/75 number boards), packaged as a native Android app with Capacitor",
   "private": true,
   "scripts": {
@@ -13,8 +13,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^6.1.2",
-    "@capacitor/core": "^6.1.2",
-    "@capacitor/splash-screen": "^6.0.2"
+    "@capacitor/core": "^6.1.2"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.1.2",

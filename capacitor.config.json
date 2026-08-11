@@ -3,19 +3,8 @@
   "appName": "Bingo Stop",
   "webDir": "www",
   "bundledWebRuntime": false,
-  "backgroundColor": "#0b0d16",
+  "backgroundColor": "#0B0E1A",
   "android": {
-    "backgroundColor": "#0b0d16"
-  },
-  "plugins": {
-    "SplashScreen": {
-      "launchShowDuration": 3500,
-      "launchAutoHide": true,
-      "backgroundColor": "#0b0d16",
-      "androidScaleType": "CENTER_CROP",
-      "showSpinner": false,
-      "splashFullScreen": true,
-      "splashImmersive": true
-    }
+    "backgroundColor": "#0B0E1A"
   }
 }

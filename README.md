@@ -1,6 +1,6 @@
 # 🎯 Bingo Stop — Native Android App (built by GitHub)
 
-**Version 2026.BINGO.100.1**
+**Version 2026.BINGO.101.1**
 
 This repo turns the Bingo Stop web game into a **real installable Android app (.apk)**, without you needing Android Studio or a Mac. A GitHub Actions workflow builds the APK automatically every time you push to `main`, and drops it in **Releases** and in the **Actions** run as a downloadable file.
 
@@ -13,7 +13,7 @@ Under the hood it uses [Capacitor](https://capacitorjs.com/) to wrap the existin
 - **Auto‑win at 5 lines**: as soon as 5 lines are completed, the round is automatically recorded as a **WIN** and a celebration banner appears. You can still tap **"Actually, mark as LOSS"** on that banner to override the auto‑recorded result.
 - **App icon**: a custom, modern icon (bingo card + completed diagonal line motif) used for the Android launcher and the web/PWA icon.
 - **Splash screen**: a ~3.5 second branded splash on launch, prominently crediting **Created by TAIMOOR HASSAN**.
-- **App version**: `2026.BINGO.100.1`, shown on the splash screen and the Setup screen footer, and set as the native Android `versionName`.
+- **App version**: `2026.BINGO.101.1`, shown on the splash screen and the Setup screen footer, and set as the native Android `versionName`.
 
 ## What's in this repo
 
@@ -49,7 +49,7 @@ bingo-stop-app/
    git push -u origin main
    ```
 
-2. **Go to the "Actions" tab** on your GitHub repo. A workflow called **Build Android APK** will start running automatically (it also runs on every future push, or you can click "Run workflow" any time). It will add the Android platform, generate the app icon and splash screen from `resources/`, and stamp the app with version `2026.BINGO.100.1`.
+2. **Go to the "Actions" tab** on your GitHub repo. A workflow called **Build Android APK** will start running automatically (it also runs on every future push, or you can click "Run workflow" any time). It will add the Android platform, generate the app icon and splash screen from `resources/`, and stamp the app with version `2026.BINGO.101.1`.
 
 3. **Wait for the green checkmark** (first run takes a few minutes — it's setting up Java, Node, and Android build tools on GitHub's machine).
 

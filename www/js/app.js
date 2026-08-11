@@ -10,7 +10,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2026.BINGO.100.1";
+  const APP_VERSION = "2026.BINGO.101.1";
 
   const STORAGE_HISTORY = "bingoStop_history_v1";
   const STORAGE_LASTPLAYER = "bingoStop_lastPlayer_v3";
@@ -509,7 +509,21 @@
     $("#btnGoHistory").addEventListener("click", () => { renderHistory(); switchScreen("#screen-history"); });
     $("#btnGoSetup").addEventListener("click", () => switchScreen("#screen-setup"));
 
-    $("#btnShuffle").addEventListener("click", () => { generateBoard(); showToast("Card shuffled"); });
+    $("#btnShuffle").addEventListener("click", () => {
+      generateBoard();
+      const shuffleCard = $("#btnShuffle");
+      const board = $("#bingoBoard");
+      shuffleCard.classList.remove("spin");
+      board.classList.remove("reshuffling");
+      void shuffleCard.offsetWidth; // restart animation
+      shuffleCard.classList.add("spin");
+      board.classList.add("reshuffling");
+      setTimeout(() => {
+        shuffleCard.classList.remove("spin");
+        board.classList.remove("reshuffling");
+      }, 550);
+      showToast("Card reshuffled");
+    });
     $("#btnDraw").addEventListener("click", drawNumber);
     $("#btnAutoReset").addEventListener("click", resetAutoDraw);
 
