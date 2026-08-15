@@ -1,6 +1,8 @@
 /* ===========================================================
    Bingo Stop — offline local game logic
-   Selectable board sizes: 25 / 50 / 75 numbers, columns B-I-N-G-O.
+   Selectable board sizes: 25 / 50 / 75 numbers. Card layout can
+   be Auto Shuffled (fully random placement across the whole grid,
+   not locked to a column) or Manually Arranged by the player.
    The BINGO letters light up (green line) cumulatively for every
    completed line (row / column / diagonal), regardless of which
    line it was. 5 completed lines triggers an automatic WIN, which
@@ -10,7 +12,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2026.BINGO.101.1";
+  const APP_VERSION = "2026.BINGO.103.1";
 
   const STORAGE_HISTORY = "bingoStop_history_v1";
   const STORAGE_LASTPLAYER = "bingoStop_lastPlayer_v3";
@@ -30,14 +32,19 @@
     gender: "blue",
     poolSize: 75,          // 25 | 50 | 75
     colRanges: colRangesForPool(75),
-    board: [],              // 25 cells, row-major: idx = row*5+col, {num, marked, col}
-    mode: "manual",         // manual | auto
+    arrangeMode: "auto",    // auto | manual — how the card layout is built
+    board: [],              // 25 cells, row-major: idx = row*5+col, {num, marked}
+    mode: "manual",         // manual | auto — how numbers are marked/called
     drawnAuto: [],
     usedManual: new Set(),
     startedAt: null,
     completedLines: new Set(),   // keys like "row0","col3","diag0"
     autoWinFired: false,
     autoWinRecordId: null,
+    // temporary state while building a card manually
+    arrangeBoard: new Array(25).fill(null),
+    arrangeSelectedIdx: null,
+    arrangeReturnTo: "setup",   // setup | game
   };
 
   /* ---------------- Helpers ---------------- */
@@ -108,6 +115,19 @@
     (match || opts[opts.length - 1]).classList.add("active");
   }
 
+  function initArrangePicker() {
+    const opts = $$(".arrange-opt");
+    opts.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        opts.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.arrangeMode = btn.dataset.arrange;
+      });
+    });
+    const match = opts.find((b) => b.dataset.arrange === state.arrangeMode);
+    (match || opts[0]).classList.add("active");
+  }
+
   function loadLastPlayer() {
     try {
       const last = JSON.parse(localStorage.getItem(STORAGE_LASTPLAYER) || "null");
@@ -123,6 +143,10 @@
           state.colRanges = colRangesForPool(last.poolSize);
           $$(".board-opt").forEach((b) => b.classList.toggle("active", parseInt(b.dataset.pool, 10) === last.poolSize));
         }
+        if (last.arrangeMode === "auto" || last.arrangeMode === "manual") {
+          state.arrangeMode = last.arrangeMode;
+          $$(".arrange-opt").forEach((b) => b.classList.toggle("active", b.dataset.arrange === last.arrangeMode));
+        }
       }
     } catch (e) { /* ignore */ }
   }
@@ -135,13 +159,21 @@
       return;
     }
     state.name = name;
-    localStorage.setItem(STORAGE_LASTPLAYER, JSON.stringify({ name, gender: state.gender, poolSize: state.poolSize }));
+    localStorage.setItem(STORAGE_LASTPLAYER, JSON.stringify({
+      name, gender: state.gender, poolSize: state.poolSize, arrangeMode: state.arrangeMode,
+    }));
 
     renderBingoHeader();
-    generateBoard();
     setupManualPad();
     updateHud();
-    switchScreen("#screen-game");
+    updateShuffleCardLabel();
+
+    if (state.arrangeMode === "manual") {
+      openArrangeScreen({ prefill: false, returnTo: "setup" });
+    } else {
+      generateBoard();
+      switchScreen("#screen-game");
+    }
   }
 
   /* ---------------- BINGO header ---------------- */
@@ -169,18 +201,20 @@
   }
 
   /* ---------------- Board generation ---------------- */
+  // Auto Shuffle: 25 unique numbers picked from the whole pool (1..poolSize)
+  // and dropped into the 25 cells in fully random order — no column lock,
+  // so the same number can land in any row/column from game to game.
   function generateBoard() {
-    state.board = [];
-    // build 5 shuffled columns from their own number range (5 numbers each)
-    const columns = state.colRanges.map(([lo, hi]) => {
-      const pool = shuffle(Array.from({ length: hi - lo + 1 }, (_, i) => lo + i));
-      return pool.slice(0, 5);
-    });
-    for (let row = 0; row < 5; row++) {
-      for (let col = 0; col < 5; col++) {
-        state.board.push({ num: columns[col][row], marked: false, col });
-      }
-    }
+    const pool = shuffle(Array.from({ length: state.poolSize }, (_, i) => i + 1));
+    const chosen = shuffle(pool.slice(0, 25));
+    state.board = chosen.map((num) => ({ num, marked: false }));
+    resetBoardRuntimeState();
+    renderBoard();
+    updateHeaderCut();
+    updateStats();
+  }
+
+  function resetBoardRuntimeState() {
     state.drawnAuto = [];
     state.usedManual = new Set();
     state.completedLines = new Set();
@@ -188,8 +222,6 @@
     state.autoWinRecordId = null;
     hideAutoWinOverlay();
     setResultButtonsEnabled(true);
-    renderBoard();
-    updateHeaderCut();
   }
 
   function renderBoard() {
@@ -257,6 +289,7 @@
     // Every completed line lights up one more BINGO letter (green line),
     // left to right, independent of which specific line it was.
     updateHeaderCut();
+    updateStats();
 
     if (newlyCompleted.length) {
       showToast(newlyCompleted.length > 1 ? "🟩 Multiple lines completed!" : "🟩 Line completed!");
@@ -303,6 +336,146 @@
     hideAutoWinOverlay();
   }
 
+  /* ---------------- Manual arrangement screen ---------------- */
+  function openArrangeScreen(opts) {
+    opts = opts || {};
+    state.arrangeReturnTo = opts.returnTo || "setup";
+    state.arrangeSelectedIdx = null;
+
+    if (opts.prefill && state.board.length === 25) {
+      state.arrangeBoard = state.board.map((c) => c.num);
+    } else {
+      state.arrangeBoard = new Array(25).fill(null);
+    }
+
+    renderArrangeBoard();
+    renderArrangePad();
+    updateArrangeProgress();
+    switchScreen("#screen-arrange");
+  }
+
+  function renderArrangeBoard() {
+    const board = $("#arrangeBoard");
+    board.innerHTML = "";
+    state.arrangeBoard.forEach((num, idx) => {
+      const div = document.createElement("div");
+      const filled = num !== null;
+      div.className = "cell " + (filled ? "filled" : "empty") + (idx === state.arrangeSelectedIdx ? " selected" : "");
+      div.textContent = filled ? num : "+";
+      div.dataset.idx = idx;
+      div.addEventListener("click", () => onArrangeCellClick(idx));
+      board.appendChild(div);
+    });
+  }
+
+  function renderArrangePad() {
+    const pad = $("#arrangePad");
+    pad.innerHTML = "";
+    const used = new Set(state.arrangeBoard.filter((n) => n !== null));
+    for (let n = 1; n <= state.poolSize; n++) {
+      const btn = document.createElement("button");
+      const isUsed = used.has(n);
+      btn.className = "arrange-pad-num" + (isUsed ? " used" : "");
+      btn.textContent = n;
+      btn.dataset.num = n;
+      btn.disabled = isUsed;
+      btn.addEventListener("click", () => onArrangePadNumberClick(n));
+      pad.appendChild(btn);
+    }
+  }
+
+  function onArrangeCellClick(idx) {
+    if (state.arrangeBoard[idx] !== null) {
+      // filled cell: clear it and select it for a new number
+      state.arrangeBoard[idx] = null;
+      state.arrangeSelectedIdx = idx;
+      renderArrangeBoard();
+      renderArrangePad();
+      updateArrangeProgress();
+      return;
+    }
+    state.arrangeSelectedIdx = idx;
+    renderArrangeBoard();
+  }
+
+  function firstEmptyArrangeIdx() {
+    return state.arrangeBoard.findIndex((n) => n === null);
+  }
+
+  function onArrangePadNumberClick(num) {
+    if (state.arrangeBoard.includes(num)) return; // already placed somewhere
+    let targetIdx = state.arrangeSelectedIdx;
+    if (targetIdx === null || state.arrangeBoard[targetIdx] !== null) {
+      targetIdx = firstEmptyArrangeIdx();
+    }
+    if (targetIdx === -1 || targetIdx === null) {
+      showToast("Card is already full");
+      return;
+    }
+    state.arrangeBoard[targetIdx] = num;
+    // auto-advance to the next empty cell for a faster flow
+    state.arrangeSelectedIdx = firstEmptyArrangeIdx();
+    renderArrangeBoard();
+    renderArrangePad();
+    updateArrangeProgress();
+  }
+
+  function updateArrangeProgress() {
+    const filled = state.arrangeBoard.filter((n) => n !== null).length;
+    $("#arrangeProgress").textContent = `${filled} / 25 placed`;
+    $("#btnArrangeConfirm").disabled = filled !== 25;
+  }
+
+  function autoFillArrangeRemaining() {
+    const used = new Set(state.arrangeBoard.filter((n) => n !== null));
+    const available = shuffle(
+      Array.from({ length: state.poolSize }, (_, i) => i + 1).filter((n) => !used.has(n))
+    );
+    state.arrangeBoard = state.arrangeBoard.map((n) => (n !== null ? n : available.shift()));
+    state.arrangeSelectedIdx = null;
+    renderArrangeBoard();
+    renderArrangePad();
+    updateArrangeProgress();
+    showToast("Filled the rest randomly");
+  }
+
+  function clearArrangeAll() {
+    state.arrangeBoard = new Array(25).fill(null);
+    state.arrangeSelectedIdx = null;
+    renderArrangeBoard();
+    renderArrangePad();
+    updateArrangeProgress();
+  }
+
+  function confirmArrangement() {
+    if (state.arrangeBoard.some((n) => n === null)) {
+      showToast("Fill all 25 cells first");
+      return;
+    }
+    state.board = state.arrangeBoard.map((num) => ({ num, marked: false }));
+    resetBoardRuntimeState();
+    renderBoard();
+    updateHeaderCut();
+    updateStats();
+    switchScreen("#screen-game");
+    showToast(state.arrangeReturnTo === "game" ? "Card rearranged" : "Card ready — good luck!");
+  }
+
+  function updateShuffleCardLabel() {
+    const icon = $("#shuffleIcon");
+    const title = $("#shuffleTitle");
+    const desc = $("#shuffleDesc");
+    if (!icon || !title || !desc) return;
+    if (state.arrangeMode === "manual") {
+      icon.textContent = "✍️";
+      title.textContent = "Manual Arrangement";
+      desc.textContent = "Tap to rearrange your numbers by hand";
+    } else {
+      icon.textContent = "🎲";
+      title.textContent = "Auto Shuffle";
+      desc.textContent = "Tap to reshuffle your numbers into a brand new card";
+    }
+  }
   /* ---------------- Manual pad ---------------- */
   function setupManualPad() {
     const pad = $("#manualPad");
@@ -376,15 +549,38 @@
 
   /* ---------------- Mode switch ---------------- */
   function initModeSwitch() {
-    $$(".seg-btn").forEach((btn) => {
+    $$(".seg-btn[data-mode]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        $$(".seg-btn").forEach((b) => b.classList.remove("active"));
+        $$(".seg-btn[data-mode]").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         state.mode = btn.dataset.mode;
         $("#manualPanel").classList.toggle("hidden", state.mode !== "manual");
         $("#autoPanel").classList.toggle("hidden", state.mode !== "auto");
       });
     });
+  }
+
+  /* ---------------- Dashboard tabs (Call Numbers / Card Options) ---------------- */
+  function initDashTabs() {
+    $$(".seg-btn[data-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        $$(".seg-btn[data-tab]").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const tab = btn.dataset.tab;
+        $("#tabNumbers").classList.toggle("hidden", tab !== "numbers");
+        $("#tabCard").classList.toggle("hidden", tab !== "card");
+      });
+    });
+  }
+
+  /* ---------------- Dashboard stats ---------------- */
+  function updateStats() {
+    const linesEl = $("#statLines");
+    const markedEl = $("#statMarked");
+    const poolEl = $("#statPool");
+    if (linesEl) linesEl.textContent = `${Math.min(state.completedLines.size, AUTO_WIN_LINES)}/${AUTO_WIN_LINES}`;
+    if (markedEl) markedEl.textContent = `${state.board.filter((c) => c.marked).length}/25`;
+    if (poolEl) poolEl.textContent = `${state.poolSize}-No`;
   }
 
   /* ---------------- HUD ---------------- */
@@ -482,14 +678,24 @@
 
     initGenderPicker();
     initBoardPicker();
+    initArrangePicker();
     loadLastPlayer();
     initModeSwitch();
+    initDashTabs();
 
     $("#btnStart").addEventListener("click", startGame);
     $("#btnHistory").addEventListener("click", () => { renderHistory(); switchScreen("#screen-history"); });
 
     $("#btnMenu").addEventListener("click", toggleMenu);
-    $("#btnNewCard").addEventListener("click", () => { generateBoard(); showToast("New card generated"); closeMenu(); });
+    $("#btnNewCard").addEventListener("click", () => {
+      closeMenu();
+      if (state.arrangeMode === "manual") {
+        openArrangeScreen({ prefill: false, returnTo: "game" });
+      } else {
+        generateBoard();
+        showToast("New card generated");
+      }
+    });
     $("#btnResetMarks").addEventListener("click", () => {
       state.board.forEach((c) => { c.marked = false; });
       state.usedManual.clear();
@@ -503,6 +709,7 @@
       renderBoard();
       setupManualPad();
       updateHeaderCut();
+      updateStats();
       showToast("Marks cleared");
       closeMenu();
     });
@@ -510,6 +717,10 @@
     $("#btnGoSetup").addEventListener("click", () => switchScreen("#screen-setup"));
 
     $("#btnShuffle").addEventListener("click", () => {
+      if (state.arrangeMode === "manual") {
+        openArrangeScreen({ prefill: true, returnTo: "game" });
+        return;
+      }
       generateBoard();
       const shuffleCard = $("#btnShuffle");
       const board = $("#bingoBoard");
@@ -526,6 +737,13 @@
     });
     $("#btnDraw").addEventListener("click", drawNumber);
     $("#btnAutoReset").addEventListener("click", resetAutoDraw);
+
+    $("#btnArrangeBack").addEventListener("click", () => {
+      switchScreen(state.arrangeReturnTo === "game" ? "#screen-game" : "#screen-setup");
+    });
+    $("#btnArrangeAutoFill").addEventListener("click", autoFillArrangeRemaining);
+    $("#btnArrangeClear").addEventListener("click", clearArrangeAll);
+    $("#btnArrangeConfirm").addEventListener("click", confirmArrangement);
 
     $("#btnWin").addEventListener("click", () => {
       if (state.autoWinFired) return;

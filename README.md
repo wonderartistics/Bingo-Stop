@@ -1,6 +1,6 @@
 # 🎯 Bingo Stop — Native Android App (built by GitHub)
 
-**Version 2026.BINGO.101.1**
+**Version 2026.BINGO.103.1**
 
 This repo turns the Bingo Stop web game into a **real installable Android app (.apk)**, without you needing Android Studio or a Mac. A GitHub Actions workflow builds the APK automatically every time you push to `main`, and drops it in **Releases** and in the **Actions** run as a downloadable file.
 
@@ -8,12 +8,14 @@ Under the hood it uses [Capacitor](https://capacitorjs.com/) to wrap the existin
 
 ## What's new in this version
 
-- **Selectable board size**: choose 25 (quick/small groups), 50 (medium groups), or 75 (classic/large groups) numbers on the Setup screen. Number ranges for each B‑I‑N‑G‑O column scale automatically to the chosen size.
-- **Reworked "green line" behavior**: instead of only lighting up a BINGO letter when its own column is fully marked, a letter now lights up (green, cut) for **every** line completed anywhere on the board — any row, column, or diagonal — counted left to right, up to 5.
+- **Free card arrangement**: numbers are no longer locked to a fixed column (1‑5 always in B, 6‑10 always in I, etc). Choose **Auto Shuffle** for a fully random layout across the whole 25‑cell grid every time, or **Manual Arrangement** to hand‑pick exactly which number goes in which cell before you start. You can re‑shuffle or re‑arrange mid‑game too, from the "Manual Shuffle"/"Manual Arrangement" card on the game screen.
+- **Selectable board size**: choose 25 (quick/small groups), 50 (medium groups), or 75 (classic/large groups) numbers on the Setup screen.
+- **Reworked "green line" behavior**: a BINGO letter lights up (green, cut) for **every** line completed anywhere on the board — any row, column, or diagonal — counted left to right, up to 5.
 - **Auto‑win at 5 lines**: as soon as 5 lines are completed, the round is automatically recorded as a **WIN** and a celebration banner appears. You can still tap **"Actually, mark as LOSS"** on that banner to override the auto‑recorded result.
-- **App icon**: a custom, modern icon (bingo card + completed diagonal line motif) used for the Android launcher and the web/PWA icon.
-- **Splash screen**: a ~3.5 second branded splash on launch, prominently crediting **Created by TAIMOOR HASSAN**.
-- **App version**: `2026.BINGO.101.1`, shown on the splash screen and the Setup screen footer, and set as the native Android `versionName`.
+- **Flat, professional UI**: reworked the whole interface away from a heavy glass/gradient look to a cleaner, calmer, native‑app style — solid surfaces, crisp borders, one flat accent color per theme.
+- **App icon**: a flat, modern icon (bingo card + completed diagonal line motif), no gradients, used for the Android launcher and the web/PWA icon.
+- **Splash screen**: a ~3.5 second branded splash on launch, prominently crediting **Created by TAIMOOR HASSAN**. (Earlier builds had a native splash-screen plugin that covered this up — it's been removed so the credit reliably shows every launch.)
+- **App version**: `2026.BINGO.103.1`, shown on the splash screen and the Setup screen footer, and set as the native Android `versionName`.
 
 ## What's in this repo
 
@@ -49,7 +51,7 @@ bingo-stop-app/
    git push -u origin main
    ```
 
-2. **Go to the "Actions" tab** on your GitHub repo. A workflow called **Build Android APK** will start running automatically (it also runs on every future push, or you can click "Run workflow" any time). It will add the Android platform, generate the app icon and splash screen from `resources/`, and stamp the app with version `2026.BINGO.101.1`.
+2. **Go to the "Actions" tab** on your GitHub repo. A workflow called **Build Android APK** will start running automatically (it also runs on every future push, or you can click "Run workflow" any time). It will add the Android platform, generate the app icon and splash screen from `resources/`, and stamp the app with version `2026.BINGO.103.1`.
 
 3. **Wait for the green checkmark** (first run takes a few minutes — it's setting up Java, Node, and Android build tools on GitHub's machine).
 

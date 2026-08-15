@@ -40,7 +40,7 @@
     <span class="splash-credit-label">Created by</span>
     <span class="splash-credit-name">TAIMOOR HASSAN</span>
   </div>
-  <div class="splash-version" id="splashVersion">v2026.BINGO.101.1</div>
+  <div class="splash-version" id="splashVersion">v2026.BINGO.103.1</div>
 </div>
 
 <div class="bg-orbs" aria-hidden="true">
@@ -101,17 +101,64 @@
       </div>
     </div>
 
+    <div class="field">
+      <span class="field-label">Card arrangement</span>
+      <div class="arrange-picker" id="arrangePicker">
+        <button type="button" class="arrange-opt" data-arrange="auto">
+          <span class="arrange-opt-icon">🎲</span>
+          <strong>Auto Shuffle</strong>
+          <span>Numbers placed randomly anywhere on the card</span>
+        </button>
+        <button type="button" class="arrange-opt" data-arrange="manual">
+          <span class="arrange-opt-icon">✍️</span>
+          <strong>Manual Arrangement</strong>
+          <span>You choose which number goes in which cell</span>
+        </button>
+      </div>
+    </div>
+
     <button id="btnStart" class="btn btn-primary btn-block">Start Game</button>
     <button id="btnHistory" class="btn btn-ghost btn-block">View Results History</button>
 
     <p class="footnote">No internet needed. Everything is saved on this device only.</p>
-    <p class="app-version" id="setupVersion">v2026.BINGO.101.1</p>
+    <p class="app-version" id="setupVersion">v2026.BINGO.103.1</p>
   </div>
 </section>
 
-<!-- ============ SCREEN 2 : GAME ============ -->
-<section id="screen-game" class="screen">
+<!-- ============ SCREEN : ARRANGE CARD ============ -->
+<section id="screen-arrange" class="screen">
   <header class="topbar glass">
+    <button id="btnArrangeBack" class="icon-btn" aria-label="Back">←</button>
+    <div class="player-meta" style="align-items:center;">
+      <strong>Arrange Your Card</strong>
+      <span class="muted" id="arrangeProgress">0 / 25 placed</span>
+    </div>
+    <span style="width:34px;"></span>
+  </header>
+
+  <div class="card glass" style="padding:14px;">
+    <p class="footnote center" style="margin:0;">Tap an empty cell, then tap a number below to place it. Tap a filled cell to clear it.</p>
+  </div>
+
+  <div class="card glass board-card">
+    <div id="arrangeBoard" class="bingo-board arrange-board"></div>
+  </div>
+
+  <div class="card glass" style="padding:14px;">
+    <div class="arrange-actions">
+      <button id="btnArrangeAutoFill" class="btn btn-ghost btn-small">🎲 Auto-fill Rest</button>
+      <button id="btnArrangeClear" class="btn btn-ghost btn-small">🗑 Clear All</button>
+    </div>
+    <div id="arrangePad" class="arrange-pad"></div>
+  </div>
+
+  <button id="btnArrangeConfirm" class="btn btn-primary btn-block" disabled>Confirm Card ✓</button>
+</section>
+
+<!-- ============ SCREEN 2 : GAME DASHBOARD ============ -->
+<section id="screen-game" class="screen screen-dashboard">
+
+  <header class="game-header">
     <div class="player-chip">
       <span id="avatarInitial" class="avatar"></span>
       <div class="player-meta">
@@ -129,44 +176,73 @@
     <button class="sheet-item" id="btnGoSetup">🏠 Back to Setup</button>
   </div>
 
-  <div class="mode-row card glass">
-    <div class="segmented" id="modeSwitch">
-      <button class="seg-btn active" data-mode="manual">Mark Manually</button>
-      <button class="seg-btn" data-mode="auto">Auto Call</button>
+  <div class="dashboard-body">
+
+    <div class="stats-row">
+      <div class="stat-chip">
+        <span class="stat-value" id="statLines">0/5</span>
+        <span class="stat-label">Lines</span>
+      </div>
+      <div class="stat-chip">
+        <span class="stat-value" id="statMarked">0/25</span>
+        <span class="stat-label">Marked</span>
+      </div>
+      <div class="stat-chip">
+        <span class="stat-value" id="statPool">75-No</span>
+        <span class="stat-label">Board</span>
+      </div>
     </div>
-  </div>
 
-  <button id="btnShuffle" class="card glass shuffle-card" type="button">
-    <span class="shuffle-icon" id="shuffleIcon">🔀</span>
-    <span class="shuffle-text">
-      <strong>Manual Shuffle</strong>
-      <span>Tap to reshuffle your numbers into a brand new card</span>
-    </span>
-  </button>
-
-  <div id="manualPanel" class="card glass manual-panel">
-    <span class="field-label">Tap a number to mark / call it</span>
-    <div id="manualPad" class="manual-pad"></div>
-  </div>
-
-  <div id="autoPanel" class="card glass auto-panel hidden">
-    <div class="auto-display">
-      <span class="muted">Current Call</span>
-      <div id="autoNumber" class="auto-number">--</div>
+    <div class="card glass board-card">
+      <div id="bingoHeader" class="bingo-header"></div>
+      <div id="bingoBoard" class="bingo-board"></div>
     </div>
-    <button id="btnDraw" class="btn btn-primary btn-block">Draw Next Number</button>
-    <button id="btnAutoReset" class="btn btn-ghost btn-block">Reset Drawn Numbers</button>
+
+    <div class="card glass controls-card">
+      <div class="segmented dash-tabs" id="dashTabs">
+        <button class="seg-btn active" data-tab="numbers">🔢 Call Numbers</button>
+        <button class="seg-btn" data-tab="card">🃏 Card Options</button>
+      </div>
+
+      <div id="tabNumbers" class="dash-tab-panel">
+        <div class="segmented mode-switch-inner" id="modeSwitch">
+          <button class="seg-btn active" data-mode="manual">Mark Manually</button>
+          <button class="seg-btn" data-mode="auto">Auto Call</button>
+        </div>
+
+        <div id="manualPanel" class="manual-panel">
+          <span class="field-label">Tap a number to mark / call it</span>
+          <div id="manualPad" class="manual-pad"></div>
+        </div>
+
+        <div id="autoPanel" class="auto-panel hidden">
+          <div class="auto-display">
+            <span class="muted">Current Call</span>
+            <div id="autoNumber" class="auto-number">--</div>
+          </div>
+          <button id="btnDraw" class="btn btn-primary btn-block">Draw Next Number</button>
+          <button id="btnAutoReset" class="btn btn-ghost btn-block">Reset Drawn Numbers</button>
+        </div>
+      </div>
+
+      <div id="tabCard" class="dash-tab-panel hidden">
+        <button id="btnShuffle" class="shuffle-card" type="button">
+          <span class="shuffle-icon" id="shuffleIcon">🎲</span>
+          <span class="shuffle-text">
+            <strong id="shuffleTitle">Auto Shuffle</strong>
+            <span id="shuffleDesc">Tap to reshuffle your numbers into a brand new card</span>
+          </span>
+        </button>
+        <p class="footnote center" style="margin-top:12px;">Numbers are placed freely across the whole card — never locked to one column.</p>
+      </div>
+    </div>
+
   </div>
 
-  <div class="card glass board-card">
-    <div id="bingoHeader" class="bingo-header"></div>
-    <div id="bingoBoard" class="bingo-board"></div>
-  </div>
-
-  <div class="result-row card glass">
+  <footer class="game-footer">
     <button id="btnWin" class="btn btn-win">🏆 Mark as WIN</button>
     <button id="btnLose" class="btn btn-lose">✖ Mark as LOSE</button>
-  </div>
+  </footer>
 </section>
 
 <!-- ============ AUTO-WIN OVERLAY ============ -->

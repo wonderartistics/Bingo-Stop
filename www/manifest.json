@@ -7,7 +7,7 @@
   "background_color": "#0B0E1A",
   "theme_color": "#0B0E1A",
   "orientation": "portrait-primary",
-  "version": "2026.BINGO.101.1",
+  "version": "2026.BINGO.103.1",
   "icons": [
     { "src": "icons/favicon-32.png", "sizes": "32x32", "type": "image/png" },
     { "src": "icons/favicon-64.png", "sizes": "64x64", "type": "image/png" },

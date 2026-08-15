@@ -1,4 +1,4 @@
-const CACHE = "bingo-stop-v2026-101-1";
+const CACHE = "bingo-stop-v2026-103-1";
 const ASSETS = [
   "./",
   "./index.html",
