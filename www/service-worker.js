@@ -1,4 +1,4 @@
-const CACHE = "bingo-stop-v2026-103-1";
+const CACHE = "bingo-stop-v2026-104-1";
 const ASSETS = [
   "./",
   "./index.html",
@@ -10,7 +10,8 @@ const ASSETS = [
   "./icons/apple-touch-icon.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "./icons/icon-512-maskable.png"
+  "./icons/icon-512-maskable.png",
+  "./icons/logo.png"
 ];
 
 self.addEventListener("install", (e) => {

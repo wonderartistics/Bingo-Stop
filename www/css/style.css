@@ -99,12 +99,10 @@ body{
 /* ---------- Setup screen ---------- */
 #screen-setup{justify-content:center;}
 .brand{display:flex;align-items:center;gap:13px;margin-bottom:20px;}
-.brand-mark{
+.brand-mark-img{
   width:48px;height:48px;border-radius:14px;
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  font-family:var(--font-display);font-weight:800;font-size:19px;
-  background:var(--accent);
-  color:#ffffff;
+  flex-shrink:0;object-fit:cover;
+  box-shadow:0 6px 16px -6px rgba(1,38,214,0.55);
 }
 .brand h1{font-family:var(--font-display);font-size:24px;font-weight:700;margin:0;letter-spacing:-0.01em;}
 .brand .sub{margin:2px 0 0;color:var(--text-1);font-size:13px;}
@@ -418,30 +416,14 @@ select{
   100%{opacity:1;transform:scale(1) translateY(0);}
 }
 
-.splash-mark{
-  position:relative;width:120px;height:120px;border-radius:30px;
-  background:#ffffff;
-  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
-  gap:7px;padding:15px;margin-bottom:24px;
-  box-shadow:var(--shadow-2);
-}
-.splash-mark-dot{
-  border-radius:50%;background:#E7ECFB;
-}
-.splash-mark-dot.win, .d5{
-  background:var(--win);
-}
-.splash-mark-line{
-  position:absolute;left:14%;top:14%;width:72%;height:72%;
-  background:
-    linear-gradient(135deg, transparent 46%, var(--win) 46%, var(--win) 54%, transparent 54%);
-  border-radius:16px;pointer-events:none;
+.splash-logo{
+  display:block;
+  width:min(72vw, 300px);
+  height:auto;
+  margin-bottom:22px;
+  filter:drop-shadow(0 18px 40px rgba(1,38,214,0.45));
 }
 
-.splash-title{
-  font-family:var(--font-display);font-size:27px;font-weight:800;
-  letter-spacing:0.04em;color:var(--text-0);margin:0 0 6px;
-}
 .splash-tagline{
   margin:0 0 24px;font-size:13px;color:var(--text-2);letter-spacing:0.01em;
 }

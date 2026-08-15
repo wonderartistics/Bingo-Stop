@@ -12,7 +12,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "2026.BINGO.103.1";
+  const APP_VERSION = "2026.BINGO.104.1";
 
   const STORAGE_HISTORY = "bingoStop_history_v1";
   const STORAGE_LASTPLAYER = "bingoStop_lastPlayer_v3";
